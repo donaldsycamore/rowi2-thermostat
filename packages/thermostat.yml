@@ -1,0 +1,133 @@
+# Example single-point configuration entry (for heating only)
+climate:
+  - platform: thermostat
+    id: heaty
+    name: "Heater"
+    sensor: temperature_sensor
+    min_heating_off_time: 300s
+    min_heating_run_time: 60s
+    min_idle_time: 30s
+    heat_action:
+      - switch.turn_on: relay
+    idle_action:
+      - switch.turn_off: relay
+    default_preset: away
+    preset:
+      - name: sleep
+        default_target_temperature_low: 15 °C
+        mode: HEAT
+      - name: comfort
+        default_target_temperature_low: 18 °C
+        mode: HEAT
+      - name: away
+        default_target_temperature_low: 10 °C
+        mode: "OFF"
+      - name: boost
+        mode: HEAT
+        default_target_temperature_low: 23 °C
+#    preset_change:
+#      then:
+#      - lambda: |
+#          ESP_LOGI("thermostat", "preset_change");
+#      - script.execute: control_leds
+    on_state:
+      then:
+      - lambda: |
+          if (x.mode == CLIMATE_MODE_OFF) {
+            id(relay).turn_off();
+          } else if (x.preset == CLIMATE_PRESET_BOOST) {
+            id(relay).turn_on();
+          }
+      - script.execute: control_leds
+
+script:
+  - id: control_leds_thermostat
+    then:
+    - lambda: |
+        if (id(heaty).mode == CLIMATE_MODE_OFF) {
+          id(led_climate_off).execute();
+        } else if (id(heaty).preset == CLIMATE_PRESET_BOOST) {
+          id(led_climate_boost).execute();
+        } else if (id(heaty).target_temperature_low <= 12.0 ) {
+          id(led_climate_cold).execute();
+        } else if (id(heaty).target_temperature_low <= 16.0 ) {
+          id(led_climate_sleep).execute();
+        } else if (id(heaty).target_temperature_low < 21.0) {
+          id(led_climate_warm).execute();
+        } else { id(led_climate_boost).execute(); }
+  
+  
+# state machine:
+# OFF -> SLEEP -> WARM -> BOOST
+# cold -> OFF
+# 
+  - id: thermostat_next_state
+    then:
+    - lambda: |
+        auto call = id(heaty).make_call();
+        if (id(heaty).mode == CLIMATE_MODE_OFF || id(heaty).preset == CLIMATE_PRESET_AWAY) { 
+          // off/away => sleep
+          ESP_LOGI("thermostat", "away => sleep");
+          call.set_preset(CLIMATE_PRESET_SLEEP);
+        } else if (id(heaty).target_temperature_low <= 12.0 ) {
+          // cold/away -> off
+          ESP_LOGI("thermostat", "cold => off");
+          call.set_preset(CLIMATE_PRESET_SLEEP);
+        } else if (id(heaty).target_temperature_low <= 16.0 ) {
+          // sleep -> warm
+          ESP_LOGI("thermostat", "sleep => warm");
+          call.set_preset(CLIMATE_PRESET_COMFORT);
+        } else if (id(heaty).target_temperature_low < 21.0) {
+          // warm -> boost
+          ESP_LOGI("thermostat", "warm => boost");
+          call.set_preset(CLIMATE_PRESET_BOOST);
+        } else { // it's hot, or boost
+          // boost => off/away
+          ESP_LOGI("thermostat", "boost => off");
+          call.set_preset(CLIMATE_PRESET_AWAY);
+        }
+        call.perform();
+
+  - id: led_climate_off
+    then:
+      - light.turn_off:
+          id: rgb_light
+  - id: led_climate_boost
+    then:
+      - light.turn_on:
+          id: rgb_light
+          red: 1
+          green: 0
+          blue: 0
+          brightness: 100%
+          effect: "Slow Pulse"
+  - id: led_climate_sleep
+    then:
+      - light.turn_on:
+          id: rgb_light
+          red: 0
+          green: 1.0
+          blue: 0
+          brightness: 66%
+          effect: "none"
+
+  - id: led_climate_cold
+    then:
+      - light.turn_on:
+          id: rgb_light
+          red: 0
+          green: 0.0
+          blue: 1.0
+          brightness: 66%
+          effect: "none"
+
+  - id: led_climate_warm
+    then:
+      - light.turn_on:
+          id: rgb_light
+          red: 1.0
+          green: 0.7
+          blue: 0
+          brightness: 100%
+          effect: "none"
+

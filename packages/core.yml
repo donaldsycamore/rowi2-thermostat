@@ -24,7 +24,7 @@ binary_sensor:
         then:
           - lambda: |-
               if (!id(improv_ble_in_progress)) {
-                id(relay).toggle();
+                id(thermostat_next_state).execute();
               }
       - timing:
           - ON for at least 10s
@@ -61,6 +61,7 @@ switch:
       then:
         - lambda: id(overcurrent_cutoff_detected) = false;
         - script.execute: control_leds
+    internal: True
 
 output:
   - platform: ledc
@@ -125,7 +126,7 @@ script:
           } else if (id(overcurrent_cutoff_detected)) {
             id(control_leds_overcurrent_state).execute();
           } else {
-            id(control_leds_relay_state).execute();
+            id(control_leds_thermostat).execute();
           }
 
   # Script executed during Improv BLE
