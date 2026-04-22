@@ -17,10 +17,22 @@ packages:
   - !include packages/diagnostics.yml
   - !include packages/thermostat.yml
 
+#  remote_package:
+#    url: https://github.com/donaldsycamore/rowi2-thermostat
+#    ref: main
+#    files:
+#    - packages/core.yml
+#    - packages/climate.yml
+#    - packages/energy.yml
+#    - packages/ble-proxy.yml
+#    - packages/diagnostics.yml
+#    - packages/thermostat.yml
+
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
   name_add_mac_suffix: true
+  min_version: '2025.10.0'
   on_boot:
     priority: 375
     then:
@@ -42,17 +54,9 @@ esp32:
   framework:
     type: esp-idf
 
-external_components:
-  - source: github://pr#8158
-    components: [bl0940]
-
 # Enable logging
 logger:
   level: INFO
-
-# select:
-#   - platform: logger
-#     name: "Logger select"
 
 # Enable Home Assistant API
 api:
@@ -81,7 +85,7 @@ wifi:
     - script.execute: control_leds
 
 globals:
- # Global initialization variable. Initialized to true and set to false once everything is connected. Only used to have a smooth "plugging" experience
+  # Global initialization variable. Initialized to true and set to false once everything is connected. Only used to have a smooth "plugging" experience
   - id: init_in_progress
     type: bool
     restore_value: no
