@@ -10,16 +10,23 @@ substitutions:
   overcurrent_cutoff: '3'         # Number of consecutive energy_update_intervals the current must exceed the limit before overload cutoff
 
 packages:
+  - !include packages/core.yml
+  - !include packages/climate.yml
+  - !include packages/energy.yml
+  - !include packages/ble-proxy.yml
+  - !include packages/diagnostics.yml
+  - !include packages/thermostat.yml
 
-  remote_package:
-    url: https://github.com/vt-vaio/rowi2
-    ref: main
-    files:
-      - packages/core.yml
-      - packages/climate.yml
-      - packages/energy.yml
-      - packages/ble-proxy.yml
-      - packages/diagnostics.yml
+#  remote_package:
+#    url: https://github.com/donaldsycamore/rowi2-thermostat
+#    ref: main
+#    files:
+#    - packages/core.yml
+#    - packages/climate.yml
+#    - packages/energy.yml
+#    - packages/ble-proxy.yml
+#    - packages/diagnostics.yml
+#    - packages/thermostat.yml
 
 esphome:
   name: ${name}
